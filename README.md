@@ -40,6 +40,22 @@ A simple weekday baseline using the last 26 weeks performs about as well as the 
 
 The 26-week baseline and gradient boosting performed similarly: each won 3 of 6 windows, by margins between 0.001 and 0.008. The 4-week window is clearly worse in every window.
 
+### Reservation experiment: March validation only
+
+A new gradient boosting experiment trains on historical 28-day forecast
+snapshots. Restaurant statistics and reservation features use only
+information available at each snapshot's forecast date.
+
+| Method | RMSLE |
+|---|---|
+| 26-week weekday baseline | 0.5309 |
+| Snapshot gradient boosting without reservations | 0.5203 |
+| Snapshot gradient boosting with reservations | 0.5147 |
+
+Adding reservation features reduced RMSLE by 0.0056. The largest improvement was in the first forecast week, from 0.5196 to 0.5067.
+
+These are preliminary results from one validation window. The snapshot models also differ from the original gradient boosting setup in their training examples, inputs, and early-stopping settings, so their improvement over that original model cannot be attributed solely to reservations.
+
 ## Key findings
 - Weekends are busier, with Saturday the busiest day; weekdays are similar.
 - The jump in total visitors around July 2016 coincides with more restaurants appearing in the data, so totals aren't a reliable demand measure.
