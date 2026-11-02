@@ -13,7 +13,9 @@ Given a restaurant and a date, predict how many visitors it will have. Restauran
 2. **Validation:** trained on the past and tested on the most recent 28 days, because shuffling a time series would leak future information.
 3. **Baselines:** the restaurant's overall average, and its average for that day of the week.
 4. **Model:** gradient boosting trained on calendar features, holiday flags, restaurant type and area, and each restaurant's historical averages.
-5. **Metric:** RMSLE (root mean squared log error), so errors count as percentages and a few very busy days don't dominate.
+5. **Recency baselines:** weekday averages computed over the last 4 to 52 weeks, to test how much history to use.
+6. **Diagnostics:** permutation feature importance and error breakdowns by weekday, holiday and restaurant.
+7. **Metric:** RMSLE (root mean squared log error), so errors count as percentages and a few very busy days don't dominate.
 
 ## Results
 
@@ -25,22 +27,25 @@ Given a restaurant and a date, predict how many visitors it will have. Restauran
 | Restaurant × weekday, log-space, last 26 weeks | 0.531 |
 | Gradient boosting | 0.534 |
 
-A simple weekday baseline using the last 26 weeks performs about as well as the gradient boosting model. The model relies almost entirely on each restaurant's weekday average (importance > 0.8), and the other features add little.
+A simple weekday baseline using the last 26 weeks performs about as well as the gradient boosting model. In the model, each restaurant's weekday average has by far the largest permutation importance; the other features are small or near zero.
 
 ## Key findings
 - Weekends are busier, with Saturday the busiest day; weekdays are similar.
 - The jump in total visitors around July 2016 coincides with more restaurants appearing in the data, so totals aren't a reliable demand measure.
-- Averaging over the last 16-26 weeks works best: shorter windows are noisy, longer ones include outdated behaviour.
-- A handful of restaurants have very high errors (RMSLE 1.1-1.9). [Add your explanation only after the check above.]
+- Averaging over roughly 16–26 weeks scored best (RMSLE 0.531–0.535), versus 0.574 for 4 weeks and 0.541 for all history: short windows are noisy, long ones include outdated behaviour. The differences between the best windows are small.
+- A handful of restaurants have very high errors (RMSLE 1.1-1.9). - A handful of restaurants have very large errors (RMSLE 1.1–1.9). The worst has no records from August 2016 to February 2017, and its average daily visitors fell from about 26 (June 2016) to about 12 (July 2016) to about 6 (March 2017), so a model using its full history predicts far too high. This is also why shorter averaging windows help. The 10 worst restaurants cover about 1% of validation rows but about 6.5% of total squared error, so they matter but don't drive the overall score.
+- The holiday and month features showed no importance, but the validation window contains no public holidays, so this isn't evidence that holidays don't matter.
 
 ## Limitations
 - Evaluation uses a single 28-day window (2017-03-26 to 2017-04-22) containing no public holidays, so holiday effects weren't tested.
 - The best averaging window (26 weeks) was chosen using the same validation data, so its score is slightly optimistic.
 - Differences of about 0.003 RMSLE between models are too small to distinguish with one validation window.
 - Restaurant statistics include each training row's own value, which slightly flatters the training fit.
+
 ## Next steps
 - Evaluate on several validation windows (rolling backtests), including ones with holidays.
 - Add recency features (last 7 and 28 days) to the model.
+- Detect gaps and level shifts per restaurant and down-weight old data.
 - Handle restaurants with gaps or very short histories.
 - Deploy a small Streamlit app.
 
