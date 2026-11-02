@@ -19,6 +19,7 @@ Given a restaurant and a date, predict how many visitors it will have. Restauran
 
 ## Results
 
+### Single validation window (26 Mar – 22 Apr 2017)
 | Model | RMSLE (lower is better) |
 |---|---|
 | Restaurant average (all history) | 0.642 |
@@ -29,23 +30,37 @@ Given a restaurant and a date, predict how many visitors it will have. Restauran
 
 A simple weekday baseline using the last 26 weeks performs about as well as the gradient boosting model. In the model, each restaurant's weekday average has by far the largest permutation importance; the other features are small or near zero.
 
+### Rolling backtest: six consecutive 28-day windows (6 Nov 2016 – 22 Apr 2017)
+| Method | Average RMSLE | Best window | Worst window |
+|---|---|---|---|
+| Weekday average, last 4 weeks | 0.5965 | 0.5691 | 0.6422 |
+| Weekday average, last 26 weeks | 0.5509 | 0.5267 | 0.6071 |
+| Weekday average, all history | 0.5564 | 0.5330 | 0.6085 |
+| Gradient boosting | 0.5523 | 0.5314 | 0.6023 |
+
+The 26-week baseline and gradient boosting are tied: each won 3 of 6 windows, by margins between 0.001 and 0.008. The 4-week window is clearly worse in every window.
+
 ## Key findings
 - Weekends are busier, with Saturday the busiest day; weekdays are similar.
 - The jump in total visitors around July 2016 coincides with more restaurants appearing in the data, so totals aren't a reliable demand measure.
-- Averaging over roughly 16–26 weeks scored best (RMSLE 0.531–0.535), versus 0.574 for 4 weeks and 0.541 for all history: short windows are noisy, long ones include outdated behaviour. The differences between the best windows are small.
+- Across six windows, the 26-week weekday average was best or tied in every window and beat all-history averaging in all six (by 0.001–0.010). The 16-week average was within about 0.002 of it, so I wouldn't treat 26 weeks as special. The 4-week average was worst in every window.
+- Gradient boosting didn't beat the 26-week baseline: it won 3 of 6 windows and lost 3, averaging 0.5523 vs 0.5509. This is consistent with the model leaning almost entirely on each restaurant's weekday average.
+- The window of 4–31 Dec 2016 scored about 0.61 for every method, versus 0.53–0.55 elsewhere. Errors concentrate around year-end (see the New Year finding above). Since the data starts in Jan 2016, no model has seen a previous year-end.
 - A handful of restaurants have very large errors (RMSLE 1.1–1.9). The worst has no records from August 2016 to February 2017, and its average daily visitors fell from about 26 (June 2016) to about 12 (July 2016) to about 6 (March 2017), so a model using its full history predicts far too high. This is also why shorter averaging windows help. The 10 worst restaurants cover about 1% of validation rows but about 6.5% of total squared error, so they matter but don't drive the overall score. Excluding them lowers the gradient boosting RMSLE from 0.534 to 0.520, a small improvement, so they don't explain most of the model's error.
 - The holiday and month features showed no importance, but the validation window contains no public holidays, so this isn't evidence that holidays don't matter.
 - Around New Year, the number of restaurants with records falls from about 700 per day (late December) to 312 on 31 Dec and 147 on 1 Jan, then recovers to about 600 by 5 Jan. The early-January dip in total visitors is therefore a temporary holiday closure, not a permanent decline. Errors peak on these days: the model over-predicts on 31 Dec and under-predicts on 22, 28 and 29 Dec.
 
 ## Limitations
-- Evaluation uses a single 28-day window (2017-03-26 to 2017-04-22) containing no public holidays, so holiday effects weren't tested.
-- The best averaging window (26 weeks) was chosen using the same validation data, so its score is slightly optimistic.
-- Differences of about 0.003 RMSLE between models are too small to distinguish with one validation window.
+- The backtest covers about six months (Nov 2016 – Apr 2017) and includes only one year-end period, so I can't say how the methods behave over a full year or across multiple years.
+- The data starts in Jan 2016, so no model has seen a previous year-end or other annual events.
+- The 26-week window was selected using the same windows I report on, so its scores are slightly optimistic.
+- Differences of less than about 0.01 RMSLE between methods are small relative to window-to-window variation, so I don't claim any method is better than another at that level.
 - Restaurant statistics include each training row's own value, which slightly flatters the training fit.
+- Restaurants missing from a day's records are assumed closed or not reporting; the data can't confirm which.
 
 ## Next steps
-- Evaluate on several validation windows (rolling backtests), including ones with holidays.
-- Add recency features (last 7 and 28 days) to the model.
+- Test features that capture recent trends (last 7/28 days) and year-end effects, to see if the model can beat the baseline.
+- Collect a longer history so that several year-ends are available.
 - Detect gaps and level shifts per restaurant and down-weight old data.
 - Handle restaurants with gaps or very short histories.
 - Deploy a small Streamlit app.
