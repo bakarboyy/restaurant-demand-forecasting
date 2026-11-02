@@ -40,27 +40,29 @@ A simple weekday baseline using the last 26 weeks performs about as well as the 
 
 The 26-week baseline and gradient boosting performed similarly: each won 3 of 6 windows, by margins between 0.001 and 0.008. The 4-week window is clearly worse in every window.
 
-### Reservation experiment: March validation only
+### Reservation experiment: six-window backtest
 
-A new gradient boosting experiment trains on historical 28-day forecast
-snapshots. Restaurant statistics and reservation features use only
-information available at each snapshot's forecast date.
+A new gradient boosting experiment trains on historical 28-day forecast snapshots. Each snapshot uses only visitor history and reservations available before its forecast date. Training snapshots must finish before the validation window begins.
 
-| Method | RMSLE |
+Both snapshot models use the same training examples and settings. Only the second receives reservation features: booked visitors, booking count, and whether the restaurant has prior reservation records.
+
+| Method | Mean RMSLE across six windows |
 |---|---|
-| 26-week weekday baseline | 0.5309 |
-| Snapshot gradient boosting without reservations | 0.5203 |
-| Snapshot gradient boosting with reservations | 0.5147 |
+| 26-week weekday baseline | 0.5509 |
+| Snapshot gradient boosting without reservations | 0.5459 |
+| Snapshot gradient boosting with reservations | 0.5384 |
 
-Adding reservation features reduced RMSLE by 0.0056. The largest improvement was in the first forecast week, from 0.5196 to 0.5067.
+Adding reservation features improved RMSLE in all six windows, reducing the mean score by 0.0075. The reservation model beat the 26-week baseline in five of six windows.
 
-These are preliminary results from one validation window. The snapshot models also differ from the original gradient boosting setup in their training examples, inputs, and early-stopping settings, so their improvement over that original model cannot be attributed solely to reservations.
+The largest improvement from reservations occurred in December: 0.5962 to 0.5789. In March, the largest improvement was in the first forecast week, consistent with greater availability of near-term bookings.
+
+These results are exploratory: the validation windows have already been used for analysis. The snapshot models also differ from the original gradient boosting setup in their training examples, inputs, and early-stopping settings.
 
 ## Key findings
 - Weekends are busier, with Saturday the busiest day; weekdays are similar.
 - The jump in total visitors around July 2016 coincides with more restaurants appearing in the data, so totals aren't a reliable demand measure.
 - Across six windows, the 26-week weekday average was best or tied in every window and beat all-history averaging in all six (by 0.001–0.010). The 16-week average was within about 0.005 across these windows, so I wouldn't treat 26 weeks as special. The 4-week average was worst in every window.
-- Gradient boosting didn't beat the 26-week baseline: it won 3 of 6 windows and lost 3, averaging 0.5523 vs 0.5509. This is consistent with the model leaning almost entirely on each restaurant's weekday average.
+- The orignal gradient boosting didn't beat the 26-week baseline: it won 3 of 6 windows and lost 3, averaging 0.5523 vs 0.5509. This is consistent with the model leaning almost entirely on each restaurant's weekday average.
 - The December window was the hardest for every method. The 26-week baseline and gradient boosting scored about 0.61, compared with roughly 0.53–0.56 in the other windows. Errors concentrate around year-end (see the New Year finding below). Since the data starts in Jan 2016, no model has seen a previous year-end.
 - A handful of restaurants have very large errors (RMSLE 1.1–1.9). The worst has no records from August 2016 to February 2017, and its average daily visitors fell from about 26 (June 2016) to about 12 (July 2016) to about 6 (March 2017), so a model using its full history predicts far too high. This is also why shorter averaging windows help. The 10 restaurants contributing the most total squared log error cover about 1% of validation rows but about 6.5% of total squared error, so they matter but don't drive the overall score. Excluding them lowers the gradient boosting RMSLE from 0.534 to 0.520, a small improvement, so they don't explain most of the model's error.
 - The holiday and month features showed no importance, but the validation window contains no public holidays, so this isn't evidence that holidays don't matter.
